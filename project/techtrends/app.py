@@ -3,9 +3,24 @@ import sqlite3
 from flask import Flask, jsonify, json, render_template, request, url_for, redirect, flash
 from werkzeug.exceptions import abort
 
+import logging
+import sys
+
+# Logging configuration
+logging.basicConfig(
+    level=logging.DEBUG,
+    format='%(levelname)s:%(name)s:%(asctime)s, %(message)s',
+    handlers=[logging.StreamHandler(sys.stdout)]
+)
+
+db_connection_count = 0
+
+
 # Function to get a database connection.
 # This function connects to database with the name `database.db`
 def get_db_connection():
+    global db_connection_count
+    db_connection_count += 1
     connection = sqlite3.connect('database.db')
     connection.row_factory = sqlite3.Row
     return connection
@@ -36,13 +51,16 @@ def index():
 def post(post_id):
     post = get_post(post_id)
     if post is None:
+      app.logger.info(f"Article with id {post_id} does not exist. Returning 404.")
       return render_template('404.html'), 404
     else:
+      app.logger.info(f"Article '{post['title']}' retrieved!")
       return render_template('post.html', post=post)
 
 # Define the About Us page
 @app.route('/about')
 def about():
+    app.logger.info("The 'About Us' page was retrieved")
     return render_template('about.html')
 
 # Define the post creation functionality 
@@ -61,9 +79,38 @@ def create():
             connection.commit()
             connection.close()
 
+            app.logger.info(f"New article '{title}' created!")
             return redirect(url_for('index'))
 
     return render_template('create.html')
+
+@app.route('/healthz')
+def healthz():
+    response = app.response_class(
+        response=json.dumps({"result": "OK - healthy"}),
+        status=200,
+        mimetype='application/json'
+    )
+    app.logger.info("Health check endpoint was accessed")
+    return response
+
+@app.route('/metrics')
+def metrics():
+    connection = get_db_connection()
+    post_count = connection.execute('SELECT COUNT(*) FROM posts').fetchone()[0]
+    connection.close()
+
+    response = app.response_class(
+        response=json.dumps({
+            "db_connection_count": db_connection_count,
+            "post_count": post_count
+        }),
+        status=200,
+        mimetype='application/json'
+    )
+
+    app.logger.info("Metrics request successful")
+    return response
 
 # start the application on port 3111
 if __name__ == "__main__":
