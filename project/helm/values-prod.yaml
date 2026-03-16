@@ -1,14 +1,17 @@
-namespace: staging
+namespace: prod
 
 service:
-  port: 5111
+  port: 7111
 
-replicaCount: 3
+image:
+  pullPolicy: Always
+
+replicaCount: 5
 
 resources:
   requests:
-    memory: "90Mi"
-    cpu: "300m"
+    cpu: 350m
+    memory: 128Mi
   limits:
-    memory: "128Mi"
-    cpu: "500m"
+    cpu: 500m
+    memory: 256Mi
