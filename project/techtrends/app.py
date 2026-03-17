@@ -7,10 +7,13 @@ import logging
 import sys
 
 # Logging configuration
+stdout_handler = logging.StreamHandler(sys.stdout)
+stderr_handler = logging.StreamHandler(sys.stderr)
+stderr_handler.setLevel(logging.ERROR)
 logging.basicConfig(
     level=logging.DEBUG,
     format='%(levelname)s:%(name)s:%(asctime)s, %(message)s',
-    handlers=[logging.StreamHandler(sys.stdout)]
+    handlers=[stdout_handler, stderr_handler]
 )
 
 db_connection_count = 0
@@ -51,7 +54,7 @@ def index():
 def post(post_id):
     post = get_post(post_id)
     if post is None:
-      app.logger.info(f"Article with id {post_id} does not exist. Returning 404.")
+      app.logger.error(f"Article with id {post_id} does not exist. Returning 404.")
       return render_template('404.html'), 404
     else:
       app.logger.info(f"Article '{post['title']}' retrieved!")
